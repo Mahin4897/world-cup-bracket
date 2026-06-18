@@ -1224,13 +1224,21 @@ select {
     align-items: center;
     width: 100%;
     overflow: visible;
-    padding-bottom: 46px;
+}
+
+.bracket-match-wrap {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 172px;
 }
 
 .bracket-match {
     position: relative;
-    z-index: 1;
-    width: 172px;
+    width: 100%;
     min-height: 84px;
     border-radius: 12px;
     border: 1px solid var(--border);
@@ -1247,8 +1255,11 @@ select {
         box-shadow 0.2s ease;
 }
 
-.bracket-match.editing {
+.bracket-match-wrap.editing {
     z-index: 20;
+}
+
+.bracket-match-wrap.editing .bracket-match {
     border-color: var(--border-gold);
     transform: translateY(-2px);
     box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
@@ -1335,19 +1346,14 @@ select {
 }
 
 .advance-popover {
-    position: absolute;
-    right: -4px;
-    bottom: -42px;
-    left: -4px;
+    position: relative;
     z-index: 40;
     display: flex;
     justify-content: center;
-    pointer-events: none;
 }
 
 .advance-popover .action-button {
     min-width: 136px;
-    pointer-events: auto;
 }
 
 .bracket-connector {

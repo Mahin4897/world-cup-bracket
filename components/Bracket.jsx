@@ -51,20 +51,22 @@ function MatchCard({ match, onSelect, editing, setEditing }) {
         : null;
 
   return (
-    <div className={`bracket-match ${isEditing ? "editing" : ""}`}>
-      <TeamRow
-        match={match}
-        team={match.team1}
-        side="team1"
-        setEditing={setEditing}
-      />
-      <div className="match-divider" />
-      <TeamRow
-        match={match}
-        team={match.team2}
-        side="team2"
-        setEditing={setEditing}
-      />
+    <div className={`bracket-match-wrap ${isEditing ? "editing" : ""}`}>
+      <div className="bracket-match">
+        <TeamRow
+          match={match}
+          team={match.team1}
+          side="team1"
+          setEditing={setEditing}
+        />
+        <div className="match-divider" />
+        <TeamRow
+          match={match}
+          team={match.team2}
+          side="team2"
+          setEditing={setEditing}
+        />
+      </div>
 
       {editingTeam && (
         <div className="advance-popover">

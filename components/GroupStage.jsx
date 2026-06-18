@@ -209,12 +209,11 @@ export default function GroupStage({ tournament }) {
     groupMatches,
     groupTeamsByGroup,
     groupScores,
-    groupModes,
     manualGroupRankings,
     manualThirdQualifiers,
     hasManualGroups,
     setGroupScore,
-    setGroupMode,
+    setAllGroupModes,
     setManualGroupRanking,
     toggleManualThirdQualifier,
     groupStandings,
@@ -243,6 +242,7 @@ export default function GroupStage({ tournament }) {
   const groups = Object.keys(groupStandings).sort();
   const totalMatches = groupMatches.length;
   const bestThirdNames = new Set(advancing.bestThirds.map((team) => team.name));
+  const mode = hasManualGroups ? "manual" : "scores";
 
   return (
     <div>
@@ -265,6 +265,7 @@ export default function GroupStage({ tournament }) {
           )}
         </div>
         <div className="group-stage-actions">
+          <GroupModeToggle mode={mode} onChange={setAllGroupModes} />
           <button
             onClick={resetAll}
             className="btn-ghost action-button"
@@ -328,7 +329,6 @@ export default function GroupStage({ tournament }) {
           const matches = groupMatches.filter((match) => match.group === group);
           const teams = groupTeamsByGroup[group] ?? [];
           const letter = groupLetter(group);
-          const mode = groupModes[group] ?? "scores";
 
           return (
             <div
@@ -349,10 +349,6 @@ export default function GroupStage({ tournament }) {
                   <span className="group-card-meta">
                     {standings.length} teams
                   </span>
-                  <GroupModeToggle
-                    mode={mode}
-                    onChange={(nextMode) => setGroupMode(group, nextMode)}
-                  />
                 </div>
               </div>
 

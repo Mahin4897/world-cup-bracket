@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TEAMS, loadTeamsFromMatches } from "@/data/teams";
 
+const STORAGE_KEY = "worldcup-bracket-simulations";
+
 const THIRD_PLACE_SLOT_GROUPS = {
   74: ["A", "B", "C", "D", "F"],
   77: ["C", "D", "F", "G", "H"],
@@ -15,6 +17,52 @@ const THIRD_PLACE_SLOT_GROUPS = {
 };
 
 const MANUAL_PLACEMENTS = ["first", "second", "third"];
+
+function emptyStore() {
+  return {
+    activeSimulationId: null,
+    simulations: [],
+  };
+}
+
+function normalizeStore(data) {
+  if (!Array.isArray(data?.simulations)) return emptyStore();
+
+  return {
+    activeSimulationId:
+      data.activeSimulationId ?? data.simulations[0]?.id ?? null,
+    simulations: data.simulations.map((simulation) => ({
+      id: String(simulation.id),
+      name: simulation.name || "Untitled simulation",
+      createdAt: simulation.createdAt || new Date().toISOString(),
+      updatedAt: simulation.updatedAt || new Date().toISOString(),
+      groupScores: simulation.groupScores || {},
+      groupModes: simulation.groupModes || {},
+      manualGroupRankings: simulation.manualGroupRankings || {},
+      manualThirdQualifiers: Array.isArray(simulation.manualThirdQualifiers)
+        ? simulation.manualThirdQualifiers
+        : [],
+      knockoutResults: simulation.knockoutResults || {},
+    })),
+  };
+}
+
+function readLocalStore() {
+  if (typeof window === "undefined") return emptyStore();
+
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) return emptyStore();
+
+  return normalizeStore(JSON.parse(raw));
+}
+
+function writeLocalStore(store) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(normalizeStore(store)),
+  );
+}
 
 function compareStandings(a, b, groupMatches) {
   if (b.points !== a.points) return b.points - a.points;
@@ -80,14 +128,22 @@ function emptyManualRanking() {
   };
 }
 
-function buildDefaultGroupModes(matches) {
+function buildUniformGroupModes(matches, mode = "scores") {
   return Object.fromEntries(
     [
       ...new Set(
         matches.filter((match) => match.group).map((match) => match.group),
       ),
-    ].map((group) => [group, "scores"]),
+    ].map((group) => [group, mode]),
   );
+}
+
+function normalizeGroupModes(matches, storedModes) {
+  const hasManualMode = Object.values(storedModes || {}).some(
+    (mode) => mode === "manual",
+  );
+
+  return buildUniformGroupModes(matches, hasManualMode ? "manual" : "scores");
 }
 
 function buildManualStandings(teams, ranking) {
@@ -185,6 +241,15 @@ function buildInitialScores(matches) {
   return scores;
 }
 
+function upsertSimulation(simulations, simulation) {
+  const index = simulations.findIndex((item) => item.id === simulation.id);
+  if (index === -1) return [simulation, ...simulations];
+
+  const next = [...simulations];
+  next[index] = simulation;
+  return next;
+}
+
 export function useTournament() {
   const [matchesData, setMatchesData] = useState([]);
   const [defaultGroupScores, setDefaultGroupScores] = useState({});
@@ -203,17 +268,12 @@ export function useTournament() {
   useEffect(() => {
     async function loadTournament() {
       try {
-        const [worldCupRes, simulationsRes] = await Promise.all([
-          fetch("/worldcup.json"),
-          fetch("/api/tournament"),
-        ]);
+        const worldCupRes = await fetch("/worldcup.json");
         const data = await worldCupRes.json();
-        const savedStore = simulationsRes.ok
-          ? await simulationsRes.json()
-          : { simulations: [], activeSimulationId: null };
         const allMatches = data.matches;
         const initialScores = buildInitialScores(allMatches);
-        const initialGroupModes = buildDefaultGroupModes(allMatches);
+        const initialGroupModes = buildUniformGroupModes(allMatches);
+        const savedStore = readLocalStore();
         const savedSimulations = savedStore.simulations || [];
         const activeId =
           savedStore.activeSimulationId || savedSimulations[0]?.id || null;
@@ -226,8 +286,13 @@ export function useTournament() {
         loadTeamsFromMatches(allMatches);
 
         if (activeSimulation) {
-          setGroupScores(activeSimulation.groupScores || initialScores);
-          setGroupModes(activeSimulation.groupModes || initialGroupModes);
+          setGroupScores({
+            ...initialScores,
+            ...(activeSimulation.groupScores || {}),
+          });
+          setGroupModes(
+            normalizeGroupModes(allMatches, activeSimulation.groupModes),
+          );
           setManualGroupRankings(activeSimulation.manualGroupRankings || {});
           setManualThirdQualifiers(
             activeSimulation.manualThirdQualifiers || [],
@@ -239,13 +304,14 @@ export function useTournament() {
           setGroupModes(initialGroupModes);
           setManualGroupRankings({});
           setManualThirdQualifiers([]);
+          setKnockoutResults({});
         }
 
         setSimulations(savedSimulations);
         setDirty(false);
       } catch (error) {
         console.error("Failed to load tournament:", error);
-        setSaveError("Could not load saved simulations.");
+        setSaveError("Could not load local simulations.");
       } finally {
         setLoading(false);
       }
@@ -254,30 +320,40 @@ export function useTournament() {
     loadTournament();
   }, []);
 
-  const persistSimulation = useCallback(async (simulation) => {
-    setSaving(true);
-    setSaveError("");
+  const persistSimulation = useCallback(
+    (simulation) => {
+      setSaving(true);
+      setSaveError("");
 
-    try {
-      const response = await fetch("/api/tournament", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(simulation),
-      });
+      try {
+        const nextSimulations = upsertSimulation(simulations, simulation);
+        writeLocalStore({
+          activeSimulationId: simulation.id,
+          simulations: nextSimulations,
+        });
+        setSimulations(nextSimulations);
+        setActiveSimulationId(simulation.id);
+        setDirty(false);
+      } catch (error) {
+        console.error("Failed to save tournament locally:", error);
+        setSaveError("Could not save simulation locally.");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [simulations],
+  );
 
-      if (!response.ok) throw new Error("Save failed");
-
-      const data = await response.json();
-      setSimulations(data.store.simulations || []);
-      setActiveSimulationId(data.store.activeSimulationId || simulation.id);
-      setDirty(false);
-    } catch (error) {
-      console.error("Failed to save tournament:", error);
-      setSaveError("Could not save simulation.");
-    } finally {
-      setSaving(false);
-    }
-  }, []);
+  const setStoredActiveSimulation = useCallback(
+    (id) => {
+      try {
+        writeLocalStore({ activeSimulationId: id, simulations });
+      } catch (error) {
+        console.error("Failed to update active local simulation:", error);
+      }
+    },
+    [simulations],
+  );
 
   const groupMatches = useMemo(
     () =>
@@ -320,11 +396,14 @@ export function useTournament() {
     setDirty(true);
   }, []);
 
-  const setGroupMode = useCallback((group, mode) => {
-    setGroupModes((prev) => ({ ...prev, [group]: mode }));
-    setKnockoutResults({});
-    setDirty(true);
-  }, []);
+  const setAllGroupModes = useCallback(
+    (mode) => {
+      setGroupModes(buildUniformGroupModes(matchesData, mode));
+      setKnockoutResults({});
+      setDirty(true);
+    },
+    [matchesData],
+  );
 
   const setManualGroupRanking = useCallback((group, placement, teamName) => {
     setManualGroupRankings((prev) => {
@@ -604,7 +683,7 @@ export function useTournament() {
     });
 
     setGroupScores(newScores);
-    setGroupModes(buildDefaultGroupModes(matchesData));
+    setGroupModes(buildUniformGroupModes(matchesData));
     setManualGroupRankings({});
     setManualThirdQualifiers([]);
     setKnockoutResults({});
@@ -618,7 +697,7 @@ export function useTournament() {
 
   const resetAll = useCallback(() => {
     setGroupScores(defaultGroupScores);
-    setGroupModes(buildDefaultGroupModes(matchesData));
+    setGroupModes(buildUniformGroupModes(matchesData));
     setManualGroupRankings({});
     setManualThirdQualifiers([]);
     setKnockoutResults({});
@@ -633,19 +712,17 @@ export function useTournament() {
       createdAt: now,
       updatedAt: now,
       groupScores: defaultGroupScores,
-      groupModes: buildDefaultGroupModes(matchesData),
+      groupModes: buildUniformGroupModes(matchesData),
       manualGroupRankings: {},
       manualThirdQualifiers: [],
       knockoutResults: {},
     };
 
     setGroupScores(defaultGroupScores);
-    setGroupModes(buildDefaultGroupModes(matchesData));
+    setGroupModes(buildUniformGroupModes(matchesData));
     setManualGroupRankings({});
     setManualThirdQualifiers([]);
     setKnockoutResults({});
-    setActiveSimulationId(simulation.id);
-    setSimulations((prev) => [simulation, ...prev]);
     persistSimulation(simulation);
   }, [defaultGroupScores, matchesData, persistSimulation, simulations.length]);
 
@@ -668,7 +745,7 @@ export function useTournament() {
       return;
     }
 
-    const simulation = {
+    persistSimulation({
       id: makeSimulationId(),
       name: `Simulation ${simulations.length + 1}`,
       createdAt: now,
@@ -678,11 +755,7 @@ export function useTournament() {
       manualGroupRankings,
       manualThirdQualifiers: activeManualThirdQualifiers,
       knockoutResults,
-    };
-
-    setActiveSimulationId(simulation.id);
-    setSimulations((prev) => [simulation, ...prev]);
-    persistSimulation(simulation);
+    });
   }, [
     activeSimulationId,
     activeManualThirdQualifiers,
@@ -696,7 +769,8 @@ export function useTournament() {
 
   const saveAsSimulation = useCallback(() => {
     const now = new Date().toISOString();
-    const simulation = {
+
+    persistSimulation({
       id: makeSimulationId(),
       name: `Simulation ${simulations.length + 1}`,
       createdAt: now,
@@ -706,11 +780,7 @@ export function useTournament() {
       manualGroupRankings,
       manualThirdQualifiers: activeManualThirdQualifiers,
       knockoutResults,
-    };
-
-    setActiveSimulationId(simulation.id);
-    setSimulations((prev) => [simulation, ...prev]);
-    persistSimulation(simulation);
+    });
   }, [
     activeManualThirdQualifiers,
     groupModes,
@@ -722,31 +792,23 @@ export function useTournament() {
   ]);
 
   const loadSimulation = useCallback(
-    async (id) => {
+    (id) => {
       const simulation = simulations.find((item) => item.id === id);
       if (!simulation) return;
 
-      setGroupScores(simulation.groupScores || defaultGroupScores);
-      setGroupModes(
-        simulation.groupModes || buildDefaultGroupModes(matchesData),
-      );
+      setGroupScores({
+        ...defaultGroupScores,
+        ...(simulation.groupScores || {}),
+      });
+      setGroupModes(normalizeGroupModes(matchesData, simulation.groupModes));
       setManualGroupRankings(simulation.manualGroupRankings || {});
       setManualThirdQualifiers(simulation.manualThirdQualifiers || []);
       setKnockoutResults(simulation.knockoutResults || {});
       setActiveSimulationId(simulation.id);
+      setStoredActiveSimulation(simulation.id);
       setDirty(false);
-
-      try {
-        await fetch("/api/tournament", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ activeSimulationId: simulation.id }),
-        });
-      } catch (error) {
-        console.error("Failed to set active simulation:", error);
-      }
     },
-    [defaultGroupScores, matchesData, simulations],
+    [defaultGroupScores, matchesData, setStoredActiveSimulation, simulations],
   );
 
   const renameSimulation = useCallback(
@@ -799,7 +861,7 @@ export function useTournament() {
     hasManualGroups,
     canSaveSimulation,
     setGroupScore,
-    setGroupMode,
+    setAllGroupModes,
     setManualGroupRanking,
     toggleManualThirdQualifier,
     groupStandings,
