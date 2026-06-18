@@ -1,0 +1,353 @@
+{
+  "activeSimulationId": "sim-1781818238474-ke9gpl",
+  "simulations": [
+    {
+      "id": "sim-1781818238474-ke9gpl",
+      "name": "Simulation 2",
+      "createdAt": "2026-06-18T21:30:38.474Z",
+      "updatedAt": "2026-06-18T21:54:40.739Z",
+      "groupScores": {
+        "Mexico::South Africa": {
+          "homeGoals": 2,
+          "awayGoals": 0
+        },
+        "South Korea::Czech Republic": {
+          "homeGoals": 2,
+          "awayGoals": 1
+        },
+        "Canada::Bosnia & Herzegovina": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "Qatar::Switzerland": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "Brazil::Morocco": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "Haiti::Scotland": {
+          "homeGoals": 0,
+          "awayGoals": 1
+        },
+        "USA::Paraguay": {
+          "homeGoals": 4,
+          "awayGoals": 1
+        },
+        "Australia::Turkey": {
+          "homeGoals": 2,
+          "awayGoals": 0
+        },
+        "Germany::Curaçao": {
+          "homeGoals": 7,
+          "awayGoals": 1
+        },
+        "Ivory Coast::Ecuador": {
+          "homeGoals": 1,
+          "awayGoals": 0
+        },
+        "Netherlands::Japan": {
+          "homeGoals": 2,
+          "awayGoals": 2
+        },
+        "Sweden::Tunisia": {
+          "homeGoals": 5,
+          "awayGoals": 1
+        },
+        "Belgium::Egypt": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "Iran::New Zealand": {
+          "homeGoals": 2,
+          "awayGoals": 2
+        },
+        "Spain::Cape Verde": {
+          "homeGoals": 0,
+          "awayGoals": 0
+        },
+        "Saudi Arabia::Uruguay": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "France::Senegal": {
+          "homeGoals": 3,
+          "awayGoals": 1
+        },
+        "Iraq::Norway": {
+          "homeGoals": 1,
+          "awayGoals": 4
+        },
+        "Argentina::Algeria": {
+          "homeGoals": 3,
+          "awayGoals": 0
+        },
+        "Austria::Jordan": {
+          "homeGoals": 3,
+          "awayGoals": 1
+        },
+        "Portugal::DR Congo": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "Uzbekistan::Colombia": {
+          "homeGoals": 1,
+          "awayGoals": 3
+        },
+        "England::Croatia": {
+          "homeGoals": 4,
+          "awayGoals": 2
+        },
+        "Ghana::Panama": {
+          "homeGoals": 1,
+          "awayGoals": 0
+        },
+        "Switzerland::Bosnia & Herzegovina": {
+          "homeGoals": 4,
+          "awayGoals": 1
+        },
+        "Czech Republic::South Africa": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        }
+      },
+      "groupModes": {
+        "Group A": "manual",
+        "Group B": "manual",
+        "Group C": "manual",
+        "Group D": "manual",
+        "Group E": "manual",
+        "Group F": "manual",
+        "Group G": "manual",
+        "Group H": "manual",
+        "Group I": "manual",
+        "Group J": "manual",
+        "Group K": "manual",
+        "Group L": "manual"
+      },
+      "manualGroupRankings": {
+        "Group A": {
+          "first": "Mexico",
+          "second": "South Korea",
+          "third": "Czech Republic"
+        },
+        "Group B": {
+          "first": "Switzerland",
+          "second": "Canada",
+          "third": "Bosnia & Herzegovina"
+        },
+        "Group C": {
+          "first": "Brazil",
+          "second": "Morocco",
+          "third": "Scotland"
+        },
+        "Group D": {
+          "first": "USA",
+          "second": "Paraguay",
+          "third": "Australia"
+        },
+        "Group E": {
+          "first": "Germany",
+          "second": "Ivory Coast",
+          "third": "Ecuador"
+        },
+        "Group F": {
+          "first": "Netherlands",
+          "second": "Japan",
+          "third": "Sweden"
+        },
+        "Group G": {
+          "first": "Belgium",
+          "second": "Egypt",
+          "third": "Iran"
+        },
+        "Group H": {
+          "first": "Spain",
+          "second": "Uruguay",
+          "third": "Cape Verde"
+        },
+        "Group I": {
+          "first": "France",
+          "second": "Norway",
+          "third": "Senegal"
+        },
+        "Group J": {
+          "first": "Argentina",
+          "second": "Austria",
+          "third": "Algeria"
+        },
+        "Group K": {
+          "first": "Colombia",
+          "second": "Portugal",
+          "third": "DR Congo"
+        },
+        "Group L": {
+          "first": "England",
+          "second": "Croatia",
+          "third": "Ghana"
+        }
+      },
+      "manualThirdQualifiers": [
+        "Sweden",
+        "Senegal",
+        "Algeria",
+        "Australia",
+        "Scotland",
+        "Iran",
+        "Czech Republic",
+        "Bosnia & Herzegovina"
+      ],
+      "knockoutResults": {
+        "M73": "South Korea",
+        "M74": "Germany",
+        "M75": "Netherlands",
+        "M76": "Brazil",
+        "M77": "France",
+        "M78": "Norway",
+        "M79": "Mexico",
+        "M80": "England",
+        "M81": "USA",
+        "M82": "Belgium",
+        "M83": "Croatia",
+        "M84": "Spain",
+        "M85": "Switzerland",
+        "M86": "Argentina",
+        "M87": "Colombia",
+        "M88": "Egypt",
+        "M89": "France",
+        "M90": "Netherlands",
+        "M91": "Brazil",
+        "M92": "England",
+        "M93": "Spain",
+        "M94": "USA",
+        "M95": "Argentina",
+        "M96": "Colombia",
+        "M97": "France",
+        "M98": "Spain",
+        "M99": "England",
+        "M100": "Argentina",
+        "M101": "Spain",
+        "M102": "England",
+        "M104": "England",
+        "M103": "France"
+      }
+    },
+    {
+      "id": "sim-1781817982405-b7db46",
+      "name": "Simulation 1",
+      "createdAt": "2026-06-18T21:26:22.405Z",
+      "updatedAt": "2026-06-18T21:33:10.277Z",
+      "groupScores": {
+        "Mexico::South Africa": {
+          "homeGoals": 2,
+          "awayGoals": 0
+        },
+        "South Korea::Czech Republic": {
+          "homeGoals": 2,
+          "awayGoals": 1
+        },
+        "Canada::Bosnia & Herzegovina": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "Qatar::Switzerland": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "Brazil::Morocco": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "Haiti::Scotland": {
+          "homeGoals": 0,
+          "awayGoals": 1
+        },
+        "USA::Paraguay": {
+          "homeGoals": 4,
+          "awayGoals": 1
+        },
+        "Australia::Turkey": {
+          "homeGoals": 2,
+          "awayGoals": 0
+        },
+        "Germany::Curaçao": {
+          "homeGoals": 7,
+          "awayGoals": 1
+        },
+        "Ivory Coast::Ecuador": {
+          "homeGoals": 1,
+          "awayGoals": 0
+        },
+        "Netherlands::Japan": {
+          "homeGoals": 2,
+          "awayGoals": 2
+        },
+        "Sweden::Tunisia": {
+          "homeGoals": 5,
+          "awayGoals": 1
+        },
+        "Belgium::Egypt": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "Iran::New Zealand": {
+          "homeGoals": 2,
+          "awayGoals": 2
+        },
+        "Spain::Cape Verde": {
+          "homeGoals": 0,
+          "awayGoals": 0
+        },
+        "Saudi Arabia::Uruguay": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "France::Senegal": {
+          "homeGoals": 3,
+          "awayGoals": 1
+        },
+        "Iraq::Norway": {
+          "homeGoals": 1,
+          "awayGoals": 4
+        },
+        "Argentina::Algeria": {
+          "homeGoals": 3,
+          "awayGoals": 0
+        },
+        "Austria::Jordan": {
+          "homeGoals": 3,
+          "awayGoals": 1
+        },
+        "Portugal::DR Congo": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        },
+        "Uzbekistan::Colombia": {
+          "homeGoals": 1,
+          "awayGoals": 3
+        },
+        "England::Croatia": {
+          "homeGoals": 4,
+          "awayGoals": 2
+        },
+        "Ghana::Panama": {
+          "homeGoals": 1,
+          "awayGoals": 0
+        },
+        "Switzerland::Bosnia & Herzegovina": {
+          "homeGoals": 4,
+          "awayGoals": 1
+        },
+        "Czech Republic::South Africa": {
+          "homeGoals": 1,
+          "awayGoals": 1
+        }
+      },
+      "groupModes": {},
+      "manualGroupRankings": {},
+      "manualThirdQualifiers": [],
+      "knockoutResults": {}
+    }
+  ]
+}

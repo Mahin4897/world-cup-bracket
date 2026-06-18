@@ -1,65 +1,149 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import GroupStage from "@/components/GroupStage";
+import KnockoutBracket from "@/components/KnockoutBracket";
+import { useTournament } from "@/hooks/useTournament";
+
+function SimulationBar({ tournament }) {
+  const {
+    simulations,
+    activeSimulationId,
+    loadSimulation,
+    createSimulation,
+    saveSimulation,
+    saveAsSimulation,
+    renameSimulation,
+    saving,
+    saveError,
+    dirty,
+    hasManualGroups,
+    canSaveSimulation,
+  } = tournament;
+  const activeSimulation = simulations.find(
+    (simulation) => simulation.id === activeSimulationId,
+  );
+  const statusText = saveError
+    ? saveError
+    : saving
+      ? "Saving..."
+      : hasManualGroups && !canSaveSimulation
+        ? "Select 8 third-place teams"
+        : dirty
+          ? "Unsaved changes"
+          : activeSimulation
+            ? "Saved"
+            : "Unsaved draft";
+
+  return (
+    <section className="simulation-bar">
+      <div className="simulation-fields">
+        <span className="simulation-label">Simulation</span>
+        <select
+          value={activeSimulationId || ""}
+          onChange={(event) => loadSimulation(event.target.value)}
+          className="control-field simulation-select"
+          disabled={simulations.length === 0}
+        >
+          {simulations.length === 0 ? (
+            <option value="">No saved simulations</option>
+          ) : (
+            simulations.map((simulation) => (
+              <option key={simulation.id} value={simulation.id}>
+                {simulation.name}
+              </option>
+            ))
+          )}
+        </select>
+        <input
+          value={activeSimulation?.name || ""}
+          onChange={(event) => renameSimulation(event.target.value)}
+          className="control-field simulation-name"
+          placeholder="Name this simulation"
+          disabled={!activeSimulation}
+        />
+      </div>
+
+      <div className="simulation-actions">
+        <span className={saveError ? "save-status error" : "save-status"}>
+          {statusText}
+        </span>
+        <button onClick={createSimulation} className="btn-ghost action-button">
+          New
+        </button>
+        <button
+          onClick={saveSimulation}
+          className="btn-primary action-button"
+          disabled={
+            saving ||
+            !canSaveSimulation ||
+            (!dirty && Boolean(activeSimulation))
+          }
+        >
+          Save
+        </button>
+        <button
+          onClick={saveAsSimulation}
+          className="btn-ghost action-button"
+          disabled={saving || !canSaveSimulation}
+        >
+          Save Copy
+        </button>
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
+  const [tab, setTab] = useState("group");
+  const tournament = useTournament();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="app-shell">
+      <header className="hero-header fade-up">
+        <div className="hero-eyebrow">FIFA / Official Predictor</div>
+
+        <h1 className="hero-title display gold">
+          World Cup<span className="text-[var(--text-primary)] ml-3">2026</span>
+        </h1>
+
+        <p className="hero-hosts">USA / Canada / Mexico</p>
+
+        <div className="hero-rule">
+          <span />
+          <i />
+          <span />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </header>
+
+      <SimulationBar tournament={tournament} />
+
+      <div className="tab-nav-wrap">
+        <div className="tab-nav">
+          <button
+            onClick={() => setTab("group")}
+            className={`btn-ghost tab-button ${tab === "group" ? "active" : ""}`}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Group Stage
+          </button>
+          <button
+            onClick={() => setTab("knockout")}
+            className={`btn-ghost tab-button ${
+              tab === "knockout" ? "active" : ""
+            }`}
           >
-            Documentation
-          </a>
+            Knockout Bracket
+          </button>
         </div>
-      </main>
-    </div>
+      </div>
+
+      <div className="fade-up" key={tab}>
+        {tab === "group" ? (
+          <GroupStage tournament={tournament} />
+        ) : (
+          <KnockoutBracket tournament={tournament} />
+        )}
+      </div>
+    </main>
   );
 }
