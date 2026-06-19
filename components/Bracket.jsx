@@ -4,9 +4,12 @@ import { useState } from "react";
 import TeamFlag from "./TeamFlag";
 import { getTeamShortName } from "@/data/teams";
 
-function TBDCard() {
+function TBDCard({ match }) {
   return (
     <div className="bracket-match tbd-match">
+      {match?.bangladeshTime?.label && (
+        <div className="bracket-match-meta">{match.bangladeshTime.label}</div>
+      )}
       <span>TBD</span>
     </div>
   );
@@ -40,7 +43,7 @@ function TeamRow({ match, team, side, setEditing }) {
 }
 
 function MatchCard({ match, onSelect, editing, setEditing }) {
-  if (!match.team1 && !match.team2) return <TBDCard />;
+  if (!match.team1 && !match.team2) return <TBDCard match={match} />;
 
   const isEditing = editing?.startsWith(match.id);
   const editingTeam =
@@ -53,6 +56,9 @@ function MatchCard({ match, onSelect, editing, setEditing }) {
   return (
     <div className={`bracket-match-wrap ${isEditing ? "editing" : ""}`}>
       <div className="bracket-match">
+        {match.bangladeshTime?.label && (
+          <div className="bracket-match-meta">{match.bangladeshTime.label}</div>
+        )}
         <TeamRow
           match={match}
           team={match.team1}

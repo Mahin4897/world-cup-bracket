@@ -360,6 +360,7 @@ export default function GroupStage({ tournament }) {
                       home={match.home}
                       away={match.away}
                       score={groupScores[match.key]}
+                      bangladeshTime={match.bangladeshTime}
                       onChange={(homeGoals, awayGoals) =>
                         setGroupScore(
                           match.home,

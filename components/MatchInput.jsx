@@ -1,7 +1,13 @@
 import TeamFlag from "./TeamFlag";
 import { getTeamShortName } from "@/data/teams";
 
-export default function MatchInput({ home, away, score, onChange }) {
+export default function MatchInput({
+  home,
+  away,
+  score,
+  onChange,
+  bangladeshTime,
+}) {
   const homeGoals = score?.homeGoals ?? 0;
   const awayGoals = score?.awayGoals ?? 0;
   const homeWin = score && homeGoals > awayGoals;
@@ -26,37 +32,43 @@ export default function MatchInput({ home, away, score, onChange }) {
   });
 
   return (
-    <div className="match-input-row">
-      <div className={`match-team home ${awayWin ? "dimmed" : ""}`}>
-        <span className="team-name">{getTeamShortName(home)}</span>
-        <TeamFlag name={home} className="team-flag" />
-      </div>
+    <div className="match-input-card">
+      {bangladeshTime?.label && (
+        <div className="match-meta">{bangladeshTime.label}</div>
+      )}
 
-      <div className="score-inputs">
-        <input
-          type="number"
-          min="0"
-          value={homeGoals}
-          onChange={(event) =>
-            onChange(parseInt(event.target.value, 10) || 0, awayGoals)
-          }
-          style={inputStyle(homeWin)}
-        />
-        <span>-</span>
-        <input
-          type="number"
-          min="0"
-          value={awayGoals}
-          onChange={(event) =>
-            onChange(homeGoals, parseInt(event.target.value, 10) || 0)
-          }
-          style={inputStyle(awayWin)}
-        />
-      </div>
+      <div className="match-input-row">
+        <div className={`match-team home ${awayWin ? "dimmed" : ""}`}>
+          <span className="team-name">{getTeamShortName(home)}</span>
+          <TeamFlag name={home} className="team-flag" />
+        </div>
 
-      <div className={`match-team away ${homeWin ? "dimmed" : ""}`}>
-        <TeamFlag name={away} className="team-flag" />
-        <span className="team-name">{getTeamShortName(away)}</span>
+        <div className="score-inputs">
+          <input
+            type="number"
+            min="0"
+            value={homeGoals}
+            onChange={(event) =>
+              onChange(parseInt(event.target.value, 10) || 0, awayGoals)
+            }
+            style={inputStyle(homeWin)}
+          />
+          <span>-</span>
+          <input
+            type="number"
+            min="0"
+            value={awayGoals}
+            onChange={(event) =>
+              onChange(homeGoals, parseInt(event.target.value, 10) || 0)
+            }
+            style={inputStyle(awayWin)}
+          />
+        </div>
+
+        <div className={`match-team away ${homeWin ? "dimmed" : ""}`}>
+          <TeamFlag name={away} className="team-flag" />
+          <span className="team-name">{getTeamShortName(away)}</span>
+        </div>
       </div>
     </div>
   );

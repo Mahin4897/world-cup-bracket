@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TEAMS, loadTeamsFromMatches } from "@/data/teams";
+import { getBangladeshMatchInfo } from "@/lib/matchTime";
 
 const STORAGE_KEY = "worldcup-bracket-simulations";
 
@@ -364,6 +365,9 @@ export function useTournament() {
           away: match.team2,
           group: match.group,
           key: `${match.team1}::${match.team2}`,
+          date: match.date,
+          time: match.time,
+          bangladeshTime: getBangladeshMatchInfo(match.date, match.time),
         })),
     [matchesData],
   );
@@ -613,6 +617,9 @@ export function useTournament() {
       team1Placeholder: match.team1,
       team2Placeholder: match.team2,
       winner: knockoutResults[`M${match.num}`] || undefined,
+      date: match.date,
+      time: match.time,
+      bangladeshTime: getBangladeshMatchInfo(match.date, match.time),
     }));
 
     const resolve = (placeholder) => {
