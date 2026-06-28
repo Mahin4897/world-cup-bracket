@@ -1,12 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import TeamFlag from "./TeamFlag";
 import { getTeamShortName } from "@/data/teams";
 
 function optionLabel(team) {
   const group = team.group?.replace(/^Group\s*/i, "");
   return group ? `${team.name} (Group ${group})` : team.name;
+}
+
+function splitRound(matches) {
+  const midpoint = Math.ceil(matches.length / 2);
+  return [matches.slice(0, midpoint), matches.slice(midpoint)];
+}
+
+function roundClassName(title) {
+  return `round-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+}
+
+function directWinnerSourceIds(match) {
+  return [match?.team1Placeholder, match?.team2Placeholder].flatMap((value) =>
+    typeof value === "string" && value.startsWith("W")
+      ? [`M${value.slice(1)}`]
+      : [],
+  );
+}
+
+function orderRoundOf32FromRoundOf16(roundOf16Matches, matchesById) {
+  return roundOf16Matches.flatMap((match) =>
+    directWinnerSourceIds(match)
+      .map((id) => matchesById.get(id))
+      .filter(Boolean),
+  );
+}
+
+function orderNextRoundFromPairs(previousRoundMatches, candidateMatches) {
+  const next = [];
+
+  for (let index = 0; index < previousRoundMatches.length; index += 2) {
+    const sourceIds = [
+      previousRoundMatches[index],
+      previousRoundMatches[index + 1],
+    ]
+      .filter(Boolean)
+      .map((match) => match.id);
+
+    if (sourceIds.length < 2) continue;
+
+    const sourceSet = new Set(sourceIds);
+    const match = candidateMatches.find((candidate) => {
+      const candidateSources = directWinnerSourceIds(candidate);
+      return (
+        candidateSources.length === sourceIds.length &&
+        candidateSources.every((id) => sourceSet.has(id))
+      );
+    });
+
+    if (match) next.push(match);
+  }
+
+  return next;
 }
 
 function TBDCard({ match }) {
@@ -125,37 +178,47 @@ function MatchCard({
         : null;
 
   return (
-    <div className={`bracket-match-wrap ${isEditing ? "editing" : ""}`}>
-      <div className="bracket-match">
-        {match.bangladeshTime?.label && (
-          <div className="bracket-match-meta">{match.bangladeshTime.label}</div>
-        )}
-        <TeamRow
-          match={match}
-          team={match.team1}
-          side="team1"
-          setWinnerEditing={setWinnerEditing}
-        />
-        <div className="match-divider" />
-        <TeamRow
-          match={match}
-          team={match.team2}
-          side="team2"
-          setWinnerEditing={setWinnerEditing}
-        />
-      </div>
-
-      {isRoundOf32 && (
-        <div className="matchup-toggle-row">
-          <button
-            type="button"
-            onClick={setMatchupEditing}
-            className="btn-ghost action-button matchup-toggle-button"
-          >
-            {matchupEditing ? "Close matchup" : "Edit matchup"}
-          </button>
+    <div
+      className={`bracket-match-wrap ${isEditing ? "editing" : ""} ${
+        isRoundOf32 ? "has-side-matchup-toggle" : ""
+      }`}
+    >
+      <div
+        className={`bracket-match-shell ${isRoundOf32 ? "has-side-action" : ""}`}
+      >
+        <div className="bracket-match">
+          {match.bangladeshTime?.label && (
+            <div className="bracket-match-meta">
+              {match.bangladeshTime.label}
+            </div>
+          )}
+          <TeamRow
+            match={match}
+            team={match.team1}
+            side="team1"
+            setWinnerEditing={setWinnerEditing}
+          />
+          <div className="match-divider" />
+          <TeamRow
+            match={match}
+            team={match.team2}
+            side="team2"
+            setWinnerEditing={setWinnerEditing}
+          />
         </div>
-      )}
+
+        {isRoundOf32 && (
+          <div className="matchup-toggle-row side-toggle">
+            <button
+              type="button"
+              onClick={setMatchupEditing}
+              className="btn-ghost action-button matchup-toggle-button"
+            >
+              {matchupEditing ? "Close matchup" : "Edit matchup"}
+            </button>
+          </div>
+        )}
+      </div>
 
       {matchupEditing && (
         <MatchupEditor
@@ -184,6 +247,93 @@ function MatchCard({
   );
 }
 
+function RoundColumn({
+  title,
+  roundClass,
+  matches,
+  gap,
+  onSelectWinner,
+  winnerEditing,
+  setWinnerEditing,
+  matchupEditing,
+  setMatchupEditing,
+  onSaveMatchup,
+  roundOf32Teams,
+}) {
+  if (!matches.length) return null;
+
+  return (
+    <div className={`bracket-round ${roundClass || ""}`}>
+      <div className="round-label">
+        <div>{title}</div>
+        <span />
+      </div>
+
+      <div className="round-matches" style={{ gap }}>
+        {matches.map((match) => (
+          <MatchCard
+            key={match.id}
+            match={match}
+            onSelectWinner={onSelectWinner}
+            winnerEditing={winnerEditing}
+            setWinnerEditing={setWinnerEditing}
+            matchupEditing={matchupEditing === match.id}
+            setMatchupEditing={() => setMatchupEditing(match.id)}
+            onSaveMatchup={onSaveMatchup}
+            roundOf32Teams={roundOf32Teams}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CenterRounds({
+  finalMatch,
+  bronzeMatch,
+  onSelectWinner,
+  winnerEditing,
+  setWinnerEditing,
+  onSaveMatchup,
+  roundOf32Teams,
+}) {
+  return (
+    <div className="bracket-center-rounds">
+      {finalMatch && (
+        <RoundColumn
+          title="Final"
+          roundClass="round-final"
+          matches={[finalMatch]}
+          gap={16}
+          onSelectWinner={onSelectWinner}
+          winnerEditing={winnerEditing}
+          setWinnerEditing={setWinnerEditing}
+          matchupEditing={null}
+          setMatchupEditing={() => {}}
+          onSaveMatchup={onSaveMatchup}
+          roundOf32Teams={roundOf32Teams}
+        />
+      )}
+
+      {bronzeMatch && (
+        <RoundColumn
+          title="3rd Place"
+          roundClass="round-third"
+          matches={[bronzeMatch]}
+          gap={16}
+          onSelectWinner={onSelectWinner}
+          winnerEditing={winnerEditing}
+          setWinnerEditing={setWinnerEditing}
+          matchupEditing={null}
+          setMatchupEditing={() => {}}
+          onSaveMatchup={onSaveMatchup}
+          roundOf32Teams={roundOf32Teams}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function Bracket({
   knockoutMatches,
   setKnockoutWinner,
@@ -192,28 +342,45 @@ export default function Bracket({
 }) {
   const [winnerEditing, setWinnerEditing] = useState(null);
   const [matchupEditing, setMatchupEditing] = useState(null);
-  const roundOrder = [
-    "Round of 32",
-    "Round of 16",
-    "Quarter-finals",
-    "Semi-finals",
-    "Final",
-    "3rd Place",
-  ];
+
+  const rounds = {
+    "Round of 32": knockoutMatches.filter(
+      (match) => match.round === "Round of 32",
+    ),
+    "Round of 16": knockoutMatches.filter(
+      (match) => match.round === "Round of 16",
+    ),
+    "Quarter-finals": knockoutMatches.filter(
+      (match) => match.round === "Quarter-finals",
+    ),
+    "Semi-finals": knockoutMatches.filter(
+      (match) => match.round === "Semi-finals",
+    ),
+    Final: knockoutMatches.filter((match) => match.round === "Final"),
+    "3rd Place": knockoutMatches.filter((match) => match.round === "3rd Place"),
+  };
+
+  const [sortedLeftR16, sortedRightR16] = splitRound(rounds["Round of 16"]);
+  const matchesById = new Map(
+    knockoutMatches.map((match) => [match.id, match]),
+  );
+
+  const leftR16 = sortedLeftR16;
+  const rightR16 = sortedRightR16;
+  const leftR32 = orderRoundOf32FromRoundOf16(leftR16, matchesById);
+  const rightR32 = orderRoundOf32FromRoundOf16(rightR16, matchesById);
+  const leftQf = orderNextRoundFromPairs(leftR16, rounds["Quarter-finals"]);
+  const rightQf = orderNextRoundFromPairs(rightR16, rounds["Quarter-finals"]);
+  const [leftSf, rightSf] = splitRound(rounds["Semi-finals"]);
+  const finalMatch = rounds.Final[0] || null;
+  const bronzeMatch = rounds["3rd Place"][0] || null;
+
   const gapMap = {
     "Round of 32": 16,
-    "Round of 16": 16,
-    "Quarter-finals": 32,
-    "Semi-finals": 64,
-    Final: 16,
-    "3rd Place": 16,
+    "Round of 16": 116,
+    "Quarter-finals": 316,
+    "Semi-finals": 0,
   };
-  const rounds = roundOrder
-    .map((name) => ({
-      name,
-      matches: knockoutMatches.filter((match) => match.round === name),
-    }))
-    .filter((round) => round.matches.length > 0);
 
   const handleSelectWinner = (matchId, winner) => {
     setKnockoutWinner(matchId, winner);
@@ -236,50 +403,72 @@ export default function Bracket({
     setWinnerEditing(null);
   };
 
+  const leftColumns = [
+    { title: "Round of 32", matches: leftR32 },
+    { title: "Round of 16", matches: leftR16 },
+    { title: "Quarter-finals", matches: leftQf },
+    { title: "Semi-finals", matches: leftSf },
+  ];
+
+  const rightColumns = [
+    { title: "Semi-finals", matches: rightSf },
+    { title: "Quarter-finals", matches: rightQf },
+    { title: "Round of 16", matches: rightR16 },
+    { title: "Round of 32", matches: rightR32 },
+  ];
+
   return (
     <div className="bracket-scroll">
-      <div className="bracket-board">
-        {rounds.map((round, index) => {
-          const isLast = index === rounds.length - 1;
-          const gap = gapMap[round.name] ?? 16;
+      <div className="bracket-board bracket-board-split">
+        <div className="bracket-side left">
+          {leftColumns.map((column, index) => (
+            <Fragment key={column.title}>
+              <RoundColumn
+                title={column.title}
+                roundClass={roundClassName(column.title)}
+                matches={column.matches}
+                gap={gapMap[column.title] ?? 16}
+                onSelectWinner={handleSelectWinner}
+                winnerEditing={winnerEditing}
+                setWinnerEditing={handleToggleWinnerEditing}
+                matchupEditing={matchupEditing}
+                setMatchupEditing={handleToggleMatchupEditing}
+                onSaveMatchup={handleSaveMatchup}
+                roundOf32Teams={roundOf32Teams}
+              />
+            </Fragment>
+          ))}
+        </div>
 
-          return (
-            <div key={round.name} className="bracket-round-wrap">
-              <div className="bracket-round">
-                <div className="round-label">
-                  <div>{round.name}</div>
-                  <span />
-                </div>
+        <CenterRounds
+          finalMatch={finalMatch}
+          bronzeMatch={bronzeMatch}
+          onSelectWinner={handleSelectWinner}
+          winnerEditing={winnerEditing}
+          setWinnerEditing={handleToggleWinnerEditing}
+          onSaveMatchup={handleSaveMatchup}
+          roundOf32Teams={roundOf32Teams}
+        />
 
-                <div className="round-matches" style={{ gap }}>
-                  {round.matches.map((match) => (
-                    <MatchCard
-                      key={match.id}
-                      match={match}
-                      onSelectWinner={handleSelectWinner}
-                      winnerEditing={winnerEditing}
-                      setWinnerEditing={handleToggleWinnerEditing}
-                      matchupEditing={matchupEditing === match.id}
-                      setMatchupEditing={() =>
-                        handleToggleMatchupEditing(match.id)
-                      }
-                      onSaveMatchup={handleSaveMatchup}
-                      roundOf32Teams={roundOf32Teams}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {!isLast && (
-                <div className="bracket-connector">
-                  <div />
-                  <span>&gt;</span>
-                  <div />
-                </div>
-              )}
-            </div>
-          );
-        })}
+        <div className="bracket-side right">
+          {rightColumns.map((column, index) => (
+            <Fragment key={column.title}>
+              <RoundColumn
+                title={column.title}
+                roundClass={roundClassName(column.title)}
+                matches={column.matches}
+                gap={gapMap[column.title] ?? 16}
+                onSelectWinner={handleSelectWinner}
+                winnerEditing={winnerEditing}
+                setWinnerEditing={handleToggleWinnerEditing}
+                matchupEditing={matchupEditing}
+                setMatchupEditing={handleToggleMatchupEditing}
+                onSaveMatchup={handleSaveMatchup}
+                roundOf32Teams={roundOf32Teams}
+              />
+            </Fragment>
+          ))}
+        </div>
       </div>
     </div>
   );

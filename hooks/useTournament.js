@@ -118,6 +118,48 @@ function normalizeRound(round) {
   return labels[round] || round;
 }
 
+function collectSourceMatchNums(matchById, matchId, visited = new Set()) {
+  if (!matchId || visited.has(matchId)) return [];
+  visited.add(matchId);
+
+  const match = matchById.get(matchId);
+  if (!match) return [];
+
+  if (match.round === "Round of 32") {
+    const num = Number(match.id.slice(1));
+    return Number.isNaN(num) ? [] : [num];
+  }
+
+  const placeholders = [match.team1Placeholder, match.team2Placeholder].filter(
+    Boolean,
+  );
+
+  return placeholders.flatMap((placeholder) => {
+    if (placeholder.startsWith("W") || placeholder.startsWith("L")) {
+      return collectSourceMatchNums(
+        matchById,
+        `M${placeholder.slice(1)}`,
+        visited,
+      );
+    }
+
+    return [];
+  });
+}
+
+function knockoutSortOrder(matchById, match) {
+  const sourceNums = collectSourceMatchNums(matchById, match.id);
+  const minSource = Math.min(...sourceNums);
+  const maxSource = Math.max(...sourceNums);
+  const matchNum = Number(match.id.slice(1));
+
+  return {
+    minSource: Number.isFinite(minSource) ? minSource : matchNum,
+    maxSource: Number.isFinite(maxSource) ? maxSource : matchNum,
+    matchNum,
+  };
+}
+
 function groupCode(group) {
   return group.replace(/^Group\s*/i, "");
 }
@@ -730,11 +772,32 @@ export function useTournament() {
       return null;
     };
 
-    return allKoMatches.map((match) => ({
+    const resolvedMatches = allKoMatches.map((match) => ({
       ...match,
       team1: resolve(match, "team1", match.team1Placeholder),
       team2: resolve(match, "team2", match.team2Placeholder),
     }));
+
+    const matchById = new Map(
+      resolvedMatches.map((resolvedMatch) => [resolvedMatch.id, resolvedMatch]),
+    );
+
+    return [...resolvedMatches].sort((a, b) => {
+      if (a.round !== b.round) return 0;
+
+      const orderA = knockoutSortOrder(matchById, a);
+      const orderB = knockoutSortOrder(matchById, b);
+
+      if (orderA.minSource !== orderB.minSource) {
+        return orderA.minSource - orderB.minSource;
+      }
+
+      if (orderA.maxSource !== orderB.maxSource) {
+        return orderA.maxSource - orderB.maxSource;
+      }
+
+      return orderA.matchNum - orderB.matchNum;
+    });
   }, [
     matchesData,
     advancing,

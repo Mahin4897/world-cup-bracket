@@ -74,7 +74,7 @@ export default function KnockoutBracket({ tournament }) {
         </div>
       )}
 
-      {!champion && knockoutMatches.length > 0 && (
+      {knockoutMatches.length > 0 && (
         <p className="bracket-help">
           Click a team, then <span>Advance</span> to pick the winner. In the
           <span> Round of 32</span>, use <span>Edit matchup</span> to reshuffle
