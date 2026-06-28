@@ -44,6 +44,7 @@ function normalizeStore(data) {
         ? simulation.manualThirdQualifiers
         : [],
       knockoutResults: simulation.knockoutResults || {},
+      knockoutMatchupOverrides: simulation.knockoutMatchupOverrides || {},
     })),
   };
 }
@@ -259,6 +260,7 @@ export function useTournament() {
   const [manualGroupRankings, setManualGroupRankings] = useState({});
   const [manualThirdQualifiers, setManualThirdQualifiers] = useState([]);
   const [knockoutResults, setKnockoutResults] = useState({});
+  const [knockoutMatchupOverrides, setKnockoutMatchupOverrides] = useState({});
   const [simulations, setSimulations] = useState([]);
   const [activeSimulationId, setActiveSimulationId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -299,6 +301,9 @@ export function useTournament() {
             activeSimulation.manualThirdQualifiers || [],
           );
           setKnockoutResults(activeSimulation.knockoutResults || {});
+          setKnockoutMatchupOverrides(
+            activeSimulation.knockoutMatchupOverrides || {},
+          );
           setActiveSimulationId(activeSimulation.id);
         } else {
           setGroupScores(initialScores);
@@ -306,6 +311,7 @@ export function useTournament() {
           setManualGroupRankings({});
           setManualThirdQualifiers([]);
           setKnockoutResults({});
+          setKnockoutMatchupOverrides({});
         }
 
         setSimulations(savedSimulations);
@@ -397,6 +403,7 @@ export function useTournament() {
       [`${home}::${away}`]: { homeGoals, awayGoals },
     }));
     setKnockoutResults({});
+    setKnockoutMatchupOverrides({});
     setDirty(true);
   }, []);
 
@@ -404,6 +411,7 @@ export function useTournament() {
     (mode) => {
       setGroupModes(buildUniformGroupModes(matchesData, mode));
       setKnockoutResults({});
+      setKnockoutMatchupOverrides({});
       setDirty(true);
     },
     [matchesData],
@@ -431,6 +439,7 @@ export function useTournament() {
       };
     });
     setKnockoutResults({});
+    setKnockoutMatchupOverrides({});
     setDirty(true);
   }, []);
 
@@ -545,6 +554,7 @@ export function useTournament() {
         return [...sanitized, teamName];
       });
       setKnockoutResults({});
+      setKnockoutMatchupOverrides({});
       setDirty(true);
     },
     [thirdPlaceCandidateNames],
@@ -600,29 +610,27 @@ export function useTournament() {
     [advancing.bestThirds],
   );
 
-  const knockoutMatches = useMemo(() => {
+  const roundOf32Teams = useMemo(
+    () => [
+      ...advancing.winners,
+      ...advancing.runnersUp,
+      ...advancing.bestThirds,
+    ],
+    [advancing.bestThirds, advancing.runnersUp, advancing.winners],
+  );
+
+  const roundOf32BaseSlots = useMemo(() => {
     if (
       matchesData.length === 0 ||
       advancing.winners.length < 12 ||
       advancing.runnersUp.length < 12 ||
       advancing.bestThirds.length < 8
     ) {
-      return [];
+      return {};
     }
 
     const koData = matchesData.filter((match) => !match.group);
-    const allKoMatches = koData.map((match) => ({
-      id: `M${match.num}`,
-      round: normalizeRound(match.round),
-      team1Placeholder: match.team1,
-      team2Placeholder: match.team2,
-      winner: knockoutResults[`M${match.num}`] || undefined,
-      date: match.date,
-      time: match.time,
-      bangladeshTime: getBangladeshMatchInfo(match.date, match.time),
-    }));
-
-    const resolve = (placeholder) => {
+    const resolveSeed = (placeholder) => {
       if (placeholder.startsWith("1")) {
         const group = placeholder[1];
         return (
@@ -647,8 +655,50 @@ export function useTournament() {
         if (slotMatchNum && thirdPlaceSlotAssignments[slotMatchNum]) {
           return thirdPlaceSlotAssignments[slotMatchNum].name;
         }
+      }
 
-        return null;
+      return null;
+    };
+
+    return Object.fromEntries(
+      koData
+        .filter((match) => normalizeRound(match.round) === "Round of 32")
+        .flatMap((match) => [
+          [`M${match.num}_team1`, resolveSeed(match.team1)],
+          [`M${match.num}_team2`, resolveSeed(match.team2)],
+        ]),
+    );
+  }, [matchesData, advancing, thirdPlaceSlotAssignments]);
+
+  const knockoutMatches = useMemo(() => {
+    if (
+      matchesData.length === 0 ||
+      advancing.winners.length < 12 ||
+      advancing.runnersUp.length < 12 ||
+      advancing.bestThirds.length < 8
+    ) {
+      return [];
+    }
+
+    const koData = matchesData.filter((match) => !match.group);
+    const advancingTeamNames = new Set(roundOf32Teams.map((team) => team.name));
+    const allKoMatches = koData.map((match) => ({
+      id: `M${match.num}`,
+      round: normalizeRound(match.round),
+      team1Placeholder: match.team1,
+      team2Placeholder: match.team2,
+      winner: knockoutResults[`M${match.num}`] || undefined,
+      date: match.date,
+      time: match.time,
+      bangladeshTime: getBangladeshMatchInfo(match.date, match.time),
+    }));
+
+    const resolve = (match, side, placeholder) => {
+      if (match.round === "Round of 32") {
+        const slotKey = `${match.id}_${side}`;
+        const override = knockoutMatchupOverrides[slotKey];
+        if (override && advancingTeamNames.has(override)) return override;
+        return roundOf32BaseSlots[slotKey] || null;
       }
 
       if (placeholder.startsWith("W")) {
@@ -659,13 +709,21 @@ export function useTournament() {
       if (placeholder.startsWith("L")) {
         const prevMatchNum = placeholder.slice(1);
         const semiWin = knockoutResults[`M${prevMatchNum}`];
-        const match = allKoMatches.find(
+        const previousMatch = allKoMatches.find(
           (item) => item.id === `M${prevMatchNum}`,
         );
-        if (!match || !semiWin) return null;
+        if (!previousMatch || !semiWin) return null;
 
-        const team1 = resolve(match.team1Placeholder);
-        const team2 = resolve(match.team2Placeholder);
+        const team1 = resolve(
+          previousMatch,
+          "team1",
+          previousMatch.team1Placeholder,
+        );
+        const team2 = resolve(
+          previousMatch,
+          "team2",
+          previousMatch.team2Placeholder,
+        );
         return semiWin === team1 ? team2 : team1;
       }
 
@@ -674,10 +732,17 @@ export function useTournament() {
 
     return allKoMatches.map((match) => ({
       ...match,
-      team1: resolve(match.team1Placeholder),
-      team2: resolve(match.team2Placeholder),
+      team1: resolve(match, "team1", match.team1Placeholder),
+      team2: resolve(match, "team2", match.team2Placeholder),
     }));
-  }, [matchesData, advancing, knockoutResults, thirdPlaceSlotAssignments]);
+  }, [
+    matchesData,
+    advancing,
+    knockoutMatchupOverrides,
+    knockoutResults,
+    roundOf32BaseSlots,
+    roundOf32Teams,
+  ]);
 
   const randomizeGroupScores = useCallback(() => {
     const newScores = {};
@@ -694,8 +759,64 @@ export function useTournament() {
     setManualGroupRankings({});
     setManualThirdQualifiers([]);
     setKnockoutResults({});
+    setKnockoutMatchupOverrides({});
     setDirty(true);
   }, [groupMatches, matchesData]);
+
+  const setRoundOf32Matchup = useCallback(
+    (matchId, nextTeam1, nextTeam2) => {
+      const validTeamNames = new Set(roundOf32Teams.map((team) => team.name));
+      if (
+        !matchId ||
+        !nextTeam1 ||
+        !nextTeam2 ||
+        nextTeam1 === nextTeam2 ||
+        !validTeamNames.has(nextTeam1) ||
+        !validTeamNames.has(nextTeam2)
+      ) {
+        return;
+      }
+
+      const currentSlots = Object.fromEntries(
+        knockoutMatches
+          .filter((match) => match.round === "Round of 32")
+          .flatMap((match) => [
+            [`${match.id}_team1`, match.team1 || null],
+            [`${match.id}_team2`, match.team2 || null],
+          ]),
+      );
+
+      const replaceTeam = (slotKey, teamName) => {
+        const currentTeam = currentSlots[slotKey];
+        if (currentTeam === teamName) return;
+
+        const sourceKey = Object.keys(currentSlots).find(
+          (key) => currentSlots[key] === teamName,
+        );
+
+        currentSlots[slotKey] = teamName;
+
+        if (sourceKey && sourceKey !== slotKey) {
+          currentSlots[sourceKey] = currentTeam || null;
+        }
+      };
+
+      replaceTeam(`${matchId}_team1`, nextTeam1);
+      replaceTeam(`${matchId}_team2`, nextTeam2);
+
+      const nextOverrides = Object.fromEntries(
+        Object.entries(currentSlots).filter(
+          ([slotKey, teamName]) =>
+            teamName && roundOf32BaseSlots[slotKey] !== teamName,
+        ),
+      );
+
+      setKnockoutMatchupOverrides(nextOverrides);
+      setKnockoutResults({});
+      setDirty(true);
+    },
+    [knockoutMatches, roundOf32BaseSlots, roundOf32Teams],
+  );
 
   const setKnockoutWinner = useCallback((matchId, winner) => {
     setKnockoutResults((prev) => ({ ...prev, [matchId]: winner }));
@@ -708,6 +829,7 @@ export function useTournament() {
     setManualGroupRankings({});
     setManualThirdQualifiers([]);
     setKnockoutResults({});
+    setKnockoutMatchupOverrides({});
     setDirty(true);
   }, [defaultGroupScores, matchesData]);
 
@@ -723,6 +845,7 @@ export function useTournament() {
       manualGroupRankings: {},
       manualThirdQualifiers: [],
       knockoutResults: {},
+      knockoutMatchupOverrides: {},
     };
 
     setGroupScores(defaultGroupScores);
@@ -730,6 +853,7 @@ export function useTournament() {
     setManualGroupRankings({});
     setManualThirdQualifiers([]);
     setKnockoutResults({});
+    setKnockoutMatchupOverrides({});
     persistSimulation(simulation);
   }, [defaultGroupScores, matchesData, persistSimulation, simulations.length]);
 
@@ -748,6 +872,7 @@ export function useTournament() {
         manualGroupRankings,
         manualThirdQualifiers: activeManualThirdQualifiers,
         knockoutResults,
+        knockoutMatchupOverrides,
       });
       return;
     }
@@ -762,12 +887,14 @@ export function useTournament() {
       manualGroupRankings,
       manualThirdQualifiers: activeManualThirdQualifiers,
       knockoutResults,
+      knockoutMatchupOverrides,
     });
   }, [
     activeSimulationId,
     activeManualThirdQualifiers,
     groupModes,
     groupScores,
+    knockoutMatchupOverrides,
     knockoutResults,
     manualGroupRankings,
     persistSimulation,
@@ -787,11 +914,13 @@ export function useTournament() {
       manualGroupRankings,
       manualThirdQualifiers: activeManualThirdQualifiers,
       knockoutResults,
+      knockoutMatchupOverrides,
     });
   }, [
     activeManualThirdQualifiers,
     groupModes,
     groupScores,
+    knockoutMatchupOverrides,
     knockoutResults,
     manualGroupRankings,
     persistSimulation,
@@ -811,6 +940,7 @@ export function useTournament() {
       setManualGroupRankings(simulation.manualGroupRankings || {});
       setManualThirdQualifiers(simulation.manualThirdQualifiers || []);
       setKnockoutResults(simulation.knockoutResults || {});
+      setKnockoutMatchupOverrides(simulation.knockoutMatchupOverrides || {});
       setActiveSimulationId(simulation.id);
       setStoredActiveSimulation(simulation.id);
       setDirty(false);
@@ -837,6 +967,7 @@ export function useTournament() {
                 manualGroupRankings,
                 manualThirdQualifiers: activeManualThirdQualifiers,
                 knockoutResults,
+                knockoutMatchupOverrides,
               }
             : simulation,
         ),
@@ -848,6 +979,7 @@ export function useTournament() {
       activeManualThirdQualifiers,
       groupModes,
       groupScores,
+      knockoutMatchupOverrides,
       knockoutResults,
       manualGroupRankings,
       simulations,
@@ -873,8 +1005,10 @@ export function useTournament() {
     toggleManualThirdQualifier,
     groupStandings,
     advancing,
+    roundOf32Teams,
     knockoutMatches,
     knockoutResults,
+    setRoundOf32Matchup,
     setKnockoutWinner,
     randomizeGroupScores,
     resetAll,

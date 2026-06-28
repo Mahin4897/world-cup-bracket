@@ -1370,6 +1370,7 @@ select {
     background: rgba(255, 255, 255, 0.05);
 }
 
+.matchup-toggle-row,
 .advance-popover {
     position: relative;
     z-index: 40;
@@ -1377,8 +1378,60 @@ select {
     justify-content: center;
 }
 
-.advance-popover .action-button {
+.matchup-toggle-button {
     min-width: 136px;
+}
+
+.matchup-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid var(--border-gold);
+    background: rgba(12, 22, 42, 0.96);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+}
+
+.matchup-editor-label {
+    color: var(--gold);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.matchup-editor-grid {
+    display: grid;
+    gap: 8px;
+}
+
+.matchup-select {
+    width: 100%;
+    font-size: 11px;
+}
+
+.matchup-editor-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.matchup-editor-actions .action-button,
+.advance-popover .action-button {
+    flex: 1;
+    min-width: 0;
+}
+
+.matchup-editor-actions .action-button {
+    justify-content: center;
+    font-size: 9px;
+    line-height: 1.2;
+    letter-spacing: 0.03em;
+    white-space: normal;
+    text-align: center;
+    padding: 7px 8px;
 }
 
 .bracket-connector {

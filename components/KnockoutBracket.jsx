@@ -35,7 +35,8 @@ export default function KnockoutBracket({ tournament }) {
   const {
     knockoutMatches,
     setKnockoutWinner,
-    knockoutResults,
+    setRoundOf32Matchup,
+    roundOf32Teams,
     advancing,
     hasManualGroups,
     loading,
@@ -75,7 +76,9 @@ export default function KnockoutBracket({ tournament }) {
 
       {!champion && knockoutMatches.length > 0 && (
         <p className="bracket-help">
-          Click a team, then <span>Advance</span> to pick the winner
+          Click a team, then <span>Advance</span> to pick the winner. In the
+          <span> Round of 32</span>, use <span>Edit matchup</span> to reshuffle
+          teams.
         </p>
       )}
 
@@ -139,7 +142,8 @@ export default function KnockoutBracket({ tournament }) {
       <Bracket
         knockoutMatches={knockoutMatches}
         setKnockoutWinner={setKnockoutWinner}
-        knockoutResults={knockoutResults}
+        roundOf32Teams={roundOf32Teams}
+        setRoundOf32Matchup={setRoundOf32Matchup}
       />
     </div>
   );

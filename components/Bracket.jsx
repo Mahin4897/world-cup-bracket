@@ -4,6 +4,11 @@ import { useState } from "react";
 import TeamFlag from "./TeamFlag";
 import { getTeamShortName } from "@/data/teams";
 
+function optionLabel(team) {
+  const group = team.group?.replace(/^Group\s*/i, "");
+  return group ? `${team.name} (Group ${group})` : team.name;
+}
+
 function TBDCard({ match }) {
   return (
     <div className="bracket-match tbd-match">
@@ -15,7 +20,7 @@ function TBDCard({ match }) {
   );
 }
 
-function TeamRow({ match, team, side, setEditing }) {
+function TeamRow({ match, team, side, setWinnerEditing }) {
   if (!team) {
     return (
       <div className="bracket-team empty">
@@ -30,7 +35,7 @@ function TeamRow({ match, team, side, setEditing }) {
   return (
     <button
       type="button"
-      onClick={() => setEditing(`${match.id}_${side}`)}
+      onClick={() => setWinnerEditing(`${match.id}_${side}`)}
       className={`bracket-team ${isWinner ? "winner" : ""} ${
         isLoser ? "loser" : ""
       }`}
@@ -42,14 +47,80 @@ function TeamRow({ match, team, side, setEditing }) {
   );
 }
 
-function MatchCard({ match, onSelect, editing, setEditing }) {
+function MatchupEditor({ match, options, onSave, onCancel }) {
+  const [team1, setTeam1] = useState(match.team1 || "");
+  const [team2, setTeam2] = useState(match.team2 || "");
+  const invalid = !team1 || !team2 || team1 === team2;
+
+  return (
+    <div className="matchup-editor">
+      <div className="matchup-editor-label">Edit Round of 32 matchup</div>
+
+      <div className="matchup-editor-grid">
+        <select
+          value={team1}
+          onChange={(event) => setTeam1(event.target.value)}
+          className="control-field matchup-select"
+        >
+          {options.map((team) => (
+            <option key={team.name} value={team.name}>
+              {optionLabel(team)}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={team2}
+          onChange={(event) => setTeam2(event.target.value)}
+          className="control-field matchup-select"
+        >
+          {options.map((team) => (
+            <option key={team.name} value={team.name}>
+              {optionLabel(team)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="matchup-editor-actions">
+        <button
+          type="button"
+          onClick={() => onSave(match.id, team1, team2)}
+          className="btn-primary action-button"
+          disabled={invalid}
+        >
+          Save matchup
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="btn-ghost action-button"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MatchCard({
+  match,
+  onSelectWinner,
+  winnerEditing,
+  setWinnerEditing,
+  matchupEditing,
+  setMatchupEditing,
+  onSaveMatchup,
+  roundOf32Teams,
+}) {
   if (!match.team1 && !match.team2) return <TBDCard match={match} />;
 
-  const isEditing = editing?.startsWith(match.id);
+  const isRoundOf32 = match.round === "Round of 32";
+  const isEditing = winnerEditing?.startsWith(match.id) || matchupEditing;
   const editingTeam =
-    editing === `${match.id}_team1`
+    winnerEditing === `${match.id}_team1`
       ? match.team1
-      : editing === `${match.id}_team2`
+      : winnerEditing === `${match.id}_team2`
         ? match.team2
         : null;
 
@@ -63,21 +134,42 @@ function MatchCard({ match, onSelect, editing, setEditing }) {
           match={match}
           team={match.team1}
           side="team1"
-          setEditing={setEditing}
+          setWinnerEditing={setWinnerEditing}
         />
         <div className="match-divider" />
         <TeamRow
           match={match}
           team={match.team2}
           side="team2"
-          setEditing={setEditing}
+          setWinnerEditing={setWinnerEditing}
         />
       </div>
 
-      {editingTeam && (
+      {isRoundOf32 && (
+        <div className="matchup-toggle-row">
+          <button
+            type="button"
+            onClick={setMatchupEditing}
+            className="btn-ghost action-button matchup-toggle-button"
+          >
+            {matchupEditing ? "Close matchup" : "Edit matchup"}
+          </button>
+        </div>
+      )}
+
+      {matchupEditing && (
+        <MatchupEditor
+          match={match}
+          options={roundOf32Teams}
+          onSave={onSaveMatchup}
+          onCancel={setMatchupEditing}
+        />
+      )}
+
+      {editingTeam && !matchupEditing && (
         <div className="advance-popover">
           <button
-            onClick={() => onSelect(match.id, editingTeam)}
+            onClick={() => onSelectWinner(match.id, editingTeam)}
             className="btn-primary action-button"
             style={{
               fontSize: 10,
@@ -92,8 +184,14 @@ function MatchCard({ match, onSelect, editing, setEditing }) {
   );
 }
 
-export default function Bracket({ knockoutMatches, setKnockoutWinner }) {
-  const [editing, setEditing] = useState(null);
+export default function Bracket({
+  knockoutMatches,
+  setKnockoutWinner,
+  roundOf32Teams,
+  setRoundOf32Matchup,
+}) {
+  const [winnerEditing, setWinnerEditing] = useState(null);
+  const [matchupEditing, setMatchupEditing] = useState(null);
   const roundOrder = [
     "Round of 32",
     "Round of 16",
@@ -117,9 +215,25 @@ export default function Bracket({ knockoutMatches, setKnockoutWinner }) {
     }))
     .filter((round) => round.matches.length > 0);
 
-  const handleSelect = (matchId, winner) => {
+  const handleSelectWinner = (matchId, winner) => {
     setKnockoutWinner(matchId, winner);
-    setEditing(null);
+    setWinnerEditing(null);
+  };
+
+  const handleToggleWinnerEditing = (value) => {
+    setMatchupEditing(null);
+    setWinnerEditing((current) => (current === value ? null : value));
+  };
+
+  const handleToggleMatchupEditing = (matchId) => {
+    setWinnerEditing(null);
+    setMatchupEditing((current) => (current === matchId ? null : matchId));
+  };
+
+  const handleSaveMatchup = (matchId, team1, team2) => {
+    setRoundOf32Matchup(matchId, team1, team2);
+    setMatchupEditing(null);
+    setWinnerEditing(null);
   };
 
   return (
@@ -142,11 +256,15 @@ export default function Bracket({ knockoutMatches, setKnockoutWinner }) {
                     <MatchCard
                       key={match.id}
                       match={match}
-                      onSelect={handleSelect}
-                      editing={editing}
-                      setEditing={(value) =>
-                        setEditing(editing === value ? null : value)
+                      onSelectWinner={handleSelectWinner}
+                      winnerEditing={winnerEditing}
+                      setWinnerEditing={handleToggleWinnerEditing}
+                      matchupEditing={matchupEditing === match.id}
+                      setMatchupEditing={() =>
+                        handleToggleMatchupEditing(match.id)
                       }
+                      onSaveMatchup={handleSaveMatchup}
+                      roundOf32Teams={roundOf32Teams}
                     />
                   ))}
                 </div>
