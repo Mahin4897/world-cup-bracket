@@ -156,9 +156,91 @@ function MatchupEditor({ match, options, onSave, onCancel }) {
   );
 }
 
+function ScoreDisplay({ match, score, onSelectWinner, setWinnerEditing }) {
+  const team1Goals = score?.team1Goals ?? "";
+  const team2Goals = score?.team2Goals ?? "";
+  const hasScore = score !== undefined;
+  const team1Win =
+    hasScore &&
+    team1Goals !== "" &&
+    team2Goals !== "" &&
+    team1Goals > team2Goals;
+  const team2Win =
+    hasScore &&
+    team1Goals !== "" &&
+    team2Goals !== "" &&
+    team2Goals > team1Goals;
+
+  const inputStyle = (isWinner) => ({
+    width: 22,
+    height: 22,
+    textAlign: "center",
+    fontSize: 10,
+    fontWeight: 700,
+    borderRadius: 5,
+    outline: "none",
+    border: `1px solid ${isWinner ? "var(--border-gold)" : "rgba(255,255,255,0.12)"}`,
+    background: isWinner ? "var(--gold-muted)" : "rgba(0,0,0,0.35)",
+    color: isWinner ? "var(--gold)" : "var(--text-secondary)",
+    WebkitAppearance: "none",
+    MozAppearance: "textfield",
+    cursor: "text",
+  });
+
+  return (
+    <div className="ko-score-row" onClick={(e) => e.stopPropagation()}>
+      <input
+        type="number"
+        min="0"
+        max="99"
+        value={team1Goals}
+        placeholder="–"
+        onChange={(e) => {
+          const val = e.target.value === "" ? "" : parseInt(e.target.value, 10);
+          if (val === "" || isNaN(val)) return;
+          onSelectWinner(
+            match.id,
+            val,
+            team2Goals === "" ? 0 : team2Goals,
+            match.team1,
+            match.team2,
+          );
+          setWinnerEditing(null);
+        }}
+        style={inputStyle(team1Win)}
+        className="ko-score-input"
+      />
+      <span className="ko-score-divider">–</span>
+      <input
+        type="number"
+        min="0"
+        max="99"
+        value={team2Goals}
+        placeholder="–"
+        onChange={(e) => {
+          const val = e.target.value === "" ? "" : parseInt(e.target.value, 10);
+          if (val === "" || isNaN(val)) return;
+          onSelectWinner(
+            match.id,
+            team1Goals === "" ? 0 : team1Goals,
+            val,
+            match.team1,
+            match.team2,
+          );
+          setWinnerEditing(null);
+        }}
+        style={inputStyle(team2Win)}
+        className="ko-score-input"
+      />
+    </div>
+  );
+}
+
 function MatchCard({
   match,
   onSelectWinner,
+  onSelectScore,
+  score,
   winnerEditing,
   setWinnerEditing,
   matchupEditing,
@@ -198,6 +280,15 @@ function MatchCard({
             side="team1"
             setWinnerEditing={setWinnerEditing}
           />
+          <div className="match-divider" />
+          <div className="ko-score-wrap">
+            <ScoreDisplay
+              match={match}
+              score={score}
+              onSelectWinner={onSelectScore}
+              setWinnerEditing={setWinnerEditing}
+            />
+          </div>
           <div className="match-divider" />
           <TeamRow
             match={match}
@@ -253,6 +344,8 @@ function RoundColumn({
   matches,
   gap,
   onSelectWinner,
+  onSelectScore,
+  knockoutScores,
   winnerEditing,
   setWinnerEditing,
   matchupEditing,
@@ -275,6 +368,8 @@ function RoundColumn({
             key={match.id}
             match={match}
             onSelectWinner={onSelectWinner}
+            onSelectScore={onSelectScore}
+            score={knockoutScores?.[match.id]}
             winnerEditing={winnerEditing}
             setWinnerEditing={setWinnerEditing}
             matchupEditing={matchupEditing === match.id}
@@ -292,6 +387,8 @@ function CenterRounds({
   finalMatch,
   bronzeMatch,
   onSelectWinner,
+  onSelectScore,
+  knockoutScores,
   winnerEditing,
   setWinnerEditing,
   onSaveMatchup,
@@ -306,6 +403,8 @@ function CenterRounds({
           matches={[finalMatch]}
           gap={16}
           onSelectWinner={onSelectWinner}
+          onSelectScore={onSelectScore}
+          knockoutScores={knockoutScores}
           winnerEditing={winnerEditing}
           setWinnerEditing={setWinnerEditing}
           matchupEditing={null}
@@ -322,6 +421,8 @@ function CenterRounds({
           matches={[bronzeMatch]}
           gap={16}
           onSelectWinner={onSelectWinner}
+          onSelectScore={onSelectScore}
+          knockoutScores={knockoutScores}
           winnerEditing={winnerEditing}
           setWinnerEditing={setWinnerEditing}
           matchupEditing={null}
@@ -337,6 +438,8 @@ function CenterRounds({
 export default function Bracket({
   knockoutMatches,
   setKnockoutWinner,
+  knockoutScores,
+  setKnockoutScore,
   roundOf32Teams,
   setRoundOf32Matchup,
 }) {
@@ -387,6 +490,11 @@ export default function Bracket({
     setWinnerEditing(null);
   };
 
+  const handleSelectScore = (matchId, team1Goals, team2Goals, team1, team2) => {
+    setKnockoutScore(matchId, team1Goals, team2Goals, team1, team2);
+    setWinnerEditing(null);
+  };
+
   const handleToggleWinnerEditing = (value) => {
     setMatchupEditing(null);
     setWinnerEditing((current) => (current === value ? null : value));
@@ -429,6 +537,8 @@ export default function Bracket({
                 matches={column.matches}
                 gap={gapMap[column.title] ?? 16}
                 onSelectWinner={handleSelectWinner}
+                onSelectScore={handleSelectScore}
+                knockoutScores={knockoutScores}
                 winnerEditing={winnerEditing}
                 setWinnerEditing={handleToggleWinnerEditing}
                 matchupEditing={matchupEditing}
@@ -444,6 +554,8 @@ export default function Bracket({
           finalMatch={finalMatch}
           bronzeMatch={bronzeMatch}
           onSelectWinner={handleSelectWinner}
+          onSelectScore={handleSelectScore}
+          knockoutScores={knockoutScores}
           winnerEditing={winnerEditing}
           setWinnerEditing={handleToggleWinnerEditing}
           onSaveMatchup={handleSaveMatchup}
@@ -459,6 +571,8 @@ export default function Bracket({
                 matches={column.matches}
                 gap={gapMap[column.title] ?? 16}
                 onSelectWinner={handleSelectWinner}
+                onSelectScore={handleSelectScore}
+                knockoutScores={knockoutScores}
                 winnerEditing={winnerEditing}
                 setWinnerEditing={handleToggleWinnerEditing}
                 matchupEditing={matchupEditing}

@@ -35,8 +35,10 @@ export default function KnockoutBracket({ tournament }) {
   const {
     knockoutMatches,
     setKnockoutWinner,
+    setKnockoutScore,
     setRoundOf32Matchup,
     roundOf32Teams,
+    knockoutScores,
     advancing,
     hasManualGroups,
     loading,
@@ -142,6 +144,8 @@ export default function KnockoutBracket({ tournament }) {
       <Bracket
         knockoutMatches={knockoutMatches}
         setKnockoutWinner={setKnockoutWinner}
+        setKnockoutScore={setKnockoutScore}
+        knockoutScores={knockoutScores}
         roundOf32Teams={roundOf32Teams}
         setRoundOf32Matchup={setRoundOf32Matchup}
       />

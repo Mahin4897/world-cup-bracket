@@ -44,6 +44,7 @@ function normalizeStore(data) {
         ? simulation.manualThirdQualifiers
         : [],
       knockoutResults: simulation.knockoutResults || {},
+      knockoutScores: simulation.knockoutScores || {},
       knockoutMatchupOverrides: simulation.knockoutMatchupOverrides || {},
     })),
   };
@@ -302,6 +303,7 @@ export function useTournament() {
   const [manualGroupRankings, setManualGroupRankings] = useState({});
   const [manualThirdQualifiers, setManualThirdQualifiers] = useState([]);
   const [knockoutResults, setKnockoutResults] = useState({});
+  const [knockoutScores, setKnockoutScores] = useState({});
   const [knockoutMatchupOverrides, setKnockoutMatchupOverrides] = useState({});
   const [simulations, setSimulations] = useState([]);
   const [activeSimulationId, setActiveSimulationId] = useState(null);
@@ -343,6 +345,7 @@ export function useTournament() {
             activeSimulation.manualThirdQualifiers || [],
           );
           setKnockoutResults(activeSimulation.knockoutResults || {});
+          setKnockoutScores(activeSimulation.knockoutScores || {});
           setKnockoutMatchupOverrides(
             activeSimulation.knockoutMatchupOverrides || {},
           );
@@ -353,6 +356,8 @@ export function useTournament() {
           setManualGroupRankings({});
           setManualThirdQualifiers([]);
           setKnockoutResults({});
+          setKnockoutScores({});
+          setKnockoutScores({});
           setKnockoutMatchupOverrides({});
         }
 
@@ -445,6 +450,7 @@ export function useTournament() {
       [`${home}::${away}`]: { homeGoals, awayGoals },
     }));
     setKnockoutResults({});
+    setKnockoutScores({});
     setKnockoutMatchupOverrides({});
     setDirty(true);
   }, []);
@@ -453,6 +459,7 @@ export function useTournament() {
     (mode) => {
       setGroupModes(buildUniformGroupModes(matchesData, mode));
       setKnockoutResults({});
+      setKnockoutScores({});
       setKnockoutMatchupOverrides({});
       setDirty(true);
     },
@@ -481,6 +488,7 @@ export function useTournament() {
       };
     });
     setKnockoutResults({});
+    setKnockoutScores({});
     setKnockoutMatchupOverrides({});
     setDirty(true);
   }, []);
@@ -596,6 +604,7 @@ export function useTournament() {
         return [...sanitized, teamName];
       });
       setKnockoutResults({});
+      setKnockoutScores({});
       setKnockoutMatchupOverrides({});
       setDirty(true);
     },
@@ -822,6 +831,7 @@ export function useTournament() {
     setManualGroupRankings({});
     setManualThirdQualifiers([]);
     setKnockoutResults({});
+    setKnockoutScores({});
     setKnockoutMatchupOverrides({});
     setDirty(true);
   }, [groupMatches, matchesData]);
@@ -876,6 +886,7 @@ export function useTournament() {
 
       setKnockoutMatchupOverrides(nextOverrides);
       setKnockoutResults({});
+      setKnockoutScores({});
       setDirty(true);
     },
     [knockoutMatches, roundOf32BaseSlots, roundOf32Teams],
@@ -886,12 +897,28 @@ export function useTournament() {
     setDirty(true);
   }, []);
 
+  const setKnockoutScore = useCallback(
+    (matchId, team1Goals, team2Goals, team1, team2) => {
+      setKnockoutScores((prev) => ({
+        ...prev,
+        [matchId]: { team1Goals, team2Goals },
+      }));
+      if (team1Goals !== team2Goals) {
+        const winner = team1Goals > team2Goals ? team1 : team2;
+        setKnockoutResults((prev) => ({ ...prev, [matchId]: winner }));
+      }
+      setDirty(true);
+    },
+    [],
+  );
+
   const resetAll = useCallback(() => {
     setGroupScores(defaultGroupScores);
     setGroupModes(buildUniformGroupModes(matchesData));
     setManualGroupRankings({});
     setManualThirdQualifiers([]);
     setKnockoutResults({});
+    setKnockoutScores({});
     setKnockoutMatchupOverrides({});
     setDirty(true);
   }, [defaultGroupScores, matchesData]);
@@ -916,6 +943,7 @@ export function useTournament() {
     setManualGroupRankings({});
     setManualThirdQualifiers([]);
     setKnockoutResults({});
+    setKnockoutScores({});
     setKnockoutMatchupOverrides({});
     persistSimulation(simulation);
   }, [defaultGroupScores, matchesData, persistSimulation, simulations.length]);
@@ -935,6 +963,7 @@ export function useTournament() {
         manualGroupRankings,
         manualThirdQualifiers: activeManualThirdQualifiers,
         knockoutResults,
+        knockoutScores,
         knockoutMatchupOverrides,
       });
       return;
@@ -950,6 +979,7 @@ export function useTournament() {
       manualGroupRankings,
       manualThirdQualifiers: activeManualThirdQualifiers,
       knockoutResults,
+      knockoutScores,
       knockoutMatchupOverrides,
     });
   }, [
@@ -959,6 +989,7 @@ export function useTournament() {
     groupScores,
     knockoutMatchupOverrides,
     knockoutResults,
+    knockoutScores,
     manualGroupRankings,
     persistSimulation,
     simulations,
@@ -977,6 +1008,7 @@ export function useTournament() {
       manualGroupRankings,
       manualThirdQualifiers: activeManualThirdQualifiers,
       knockoutResults,
+      knockoutScores,
       knockoutMatchupOverrides,
     });
   }, [
@@ -985,6 +1017,7 @@ export function useTournament() {
     groupScores,
     knockoutMatchupOverrides,
     knockoutResults,
+    knockoutScores,
     manualGroupRankings,
     persistSimulation,
     simulations.length,
@@ -1003,6 +1036,7 @@ export function useTournament() {
       setManualGroupRankings(simulation.manualGroupRankings || {});
       setManualThirdQualifiers(simulation.manualThirdQualifiers || []);
       setKnockoutResults(simulation.knockoutResults || {});
+      setKnockoutScores(simulation.knockoutScores || {});
       setKnockoutMatchupOverrides(simulation.knockoutMatchupOverrides || {});
       setActiveSimulationId(simulation.id);
       setStoredActiveSimulation(simulation.id);
@@ -1071,8 +1105,10 @@ export function useTournament() {
     roundOf32Teams,
     knockoutMatches,
     knockoutResults,
+    knockoutScores,
     setRoundOf32Matchup,
     setKnockoutWinner,
+    setKnockoutScore,
     randomizeGroupScores,
     resetAll,
     saving,

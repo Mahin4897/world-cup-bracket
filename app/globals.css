@@ -1456,6 +1456,54 @@ select {
     background: rgba(255, 255, 255, 0.05);
 }
 
+/* Knockout score row */
+.ko-score-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 2px 0;
+}
+
+.ko-score-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: center;
+}
+
+.ko-score-input {
+    width: 22px;
+    height: 22px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 5px;
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
+}
+
+.ko-score-input::-webkit-inner-spin-button,
+.ko-score-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.ko-score-input:focus {
+    border-color: var(--border-gold) !important;
+    box-shadow: 0 0 0 2px rgba(200, 150, 12, 0.15);
+}
+
+.ko-score-divider {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    line-height: 1;
+    user-select: none;
+}
+
 .matchup-toggle-row,
 .advance-popover {
     position: relative;
