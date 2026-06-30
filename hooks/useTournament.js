@@ -899,13 +899,66 @@ export function useTournament() {
 
   const setKnockoutScore = useCallback(
     (matchId, team1Goals, team2Goals, team1, team2) => {
-      setKnockoutScores((prev) => ({
-        ...prev,
-        [matchId]: { team1Goals, team2Goals },
-      }));
+      setKnockoutScores((prev) => {
+        const prevEntry = prev[matchId] || {};
+        const stillDraw = team1Goals === team2Goals;
+        return {
+          ...prev,
+          [matchId]: {
+            team1Goals,
+            team2Goals,
+            ...(stillDraw
+              ? {
+                  team1Penalties: prevEntry.team1Penalties,
+                  team2Penalties: prevEntry.team2Penalties,
+                }
+              : {}),
+          },
+        };
+      });
+
       if (team1Goals !== team2Goals) {
         const winner = team1Goals > team2Goals ? team1 : team2;
         setKnockoutResults((prev) => ({ ...prev, [matchId]: winner }));
+      } else {
+        setKnockoutResults((prev) => {
+          const next = { ...prev };
+          delete next[matchId];
+          return next;
+        });
+      }
+      setDirty(true);
+    },
+    [],
+  );
+
+  const setKnockoutPenalties = useCallback(
+    (matchId, team1Penalties, team2Penalties, team1, team2) => {
+      setKnockoutScores((prev) => {
+        const prevEntry = prev[matchId] || {};
+        return {
+          ...prev,
+          [matchId]: {
+            ...prevEntry,
+            team1Penalties,
+            team2Penalties,
+          },
+        };
+      });
+
+      if (
+        team1Penalties !== "" &&
+        team2Penalties !== "" &&
+        team1Penalties !== team2Penalties
+      ) {
+        const winner = team1Penalties > team2Penalties ? team1 : team2;
+        setKnockoutResults((prev) => ({ ...prev, [matchId]: winner }));
+      } else {
+        setKnockoutResults((prev) => {
+          const next = { ...prev };
+          delete next[matchId];
+          return next;
+        });
       }
       setDirty(true);
     },
@@ -1109,6 +1162,7 @@ export function useTournament() {
     setRoundOf32Matchup,
     setKnockoutWinner,
     setKnockoutScore,
+    setKnockoutPenalties,
     randomizeGroupScores,
     resetAll,
     saving,

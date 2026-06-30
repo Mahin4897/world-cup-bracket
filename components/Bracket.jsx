@@ -156,10 +156,91 @@ function MatchupEditor({ match, options, onSave, onCancel }) {
   );
 }
 
-function ScoreDisplay({ match, score, onSelectWinner, setWinnerEditing }) {
+function PenaltyRow({ match, score, onSelectPenalties }) {
+  const p1 = score?.team1Penalties ?? "";
+  const p2 = score?.team2Penalties ?? "";
+  const p1Win = p1 !== "" && p2 !== "" && p1 > p2;
+  const p2Win = p1 !== "" && p2 !== "" && p2 > p1;
+
+  const inputStyle = (isWinner) => ({
+    width: 18,
+    height: 18,
+    textAlign: "center",
+    fontSize: 9,
+    fontWeight: 700,
+    borderRadius: 4,
+    outline: "none",
+    border: `1px solid ${isWinner ? "var(--border-gold)" : "rgba(255,255,255,0.1)"}`,
+    background: isWinner ? "var(--gold-muted)" : "rgba(0,0,0,0.25)",
+    color: isWinner ? "var(--gold)" : "var(--text-muted)",
+    WebkitAppearance: "none",
+    MozAppearance: "textfield",
+    cursor: "text",
+  });
+
+  return (
+    <div className="ko-penalty-row" onClick={(e) => e.stopPropagation()}>
+      <span className="ko-penalty-label">PEN</span>
+      <input
+        type="number"
+        min="0"
+        max="20"
+        value={p1}
+        placeholder="–"
+        onChange={(e) => {
+          const val = e.target.value === "" ? "" : parseInt(e.target.value, 10);
+          if (isNaN(val)) return;
+          onSelectPenalties(
+            match.id,
+            val,
+            p2 === "" ? 0 : p2,
+            match.team1,
+            match.team2,
+          );
+        }}
+        style={inputStyle(p1Win)}
+        className="ko-penalty-input"
+      />
+      <span className="ko-score-divider">–</span>
+      <input
+        type="number"
+        min="0"
+        max="20"
+        value={p2}
+        placeholder="–"
+        onChange={(e) => {
+          const val = e.target.value === "" ? "" : parseInt(e.target.value, 10);
+          if (isNaN(val)) return;
+          onSelectPenalties(
+            match.id,
+            p1 === "" ? 0 : p1,
+            val,
+            match.team1,
+            match.team2,
+          );
+        }}
+        style={inputStyle(p2Win)}
+        className="ko-penalty-input"
+      />
+    </div>
+  );
+}
+
+function ScoreDisplay({
+  match,
+  score,
+  onSelectWinner,
+  onSelectPenalties,
+  setWinnerEditing,
+}) {
   const team1Goals = score?.team1Goals ?? "";
   const team2Goals = score?.team2Goals ?? "";
   const hasScore = score !== undefined;
+  const isDraw =
+    hasScore &&
+    team1Goals !== "" &&
+    team2Goals !== "" &&
+    team1Goals === team2Goals;
   const team1Win =
     hasScore &&
     team1Goals !== "" &&
@@ -188,50 +269,62 @@ function ScoreDisplay({ match, score, onSelectWinner, setWinnerEditing }) {
   });
 
   return (
-    <div className="ko-score-row" onClick={(e) => e.stopPropagation()}>
-      <input
-        type="number"
-        min="0"
-        max="99"
-        value={team1Goals}
-        placeholder="–"
-        onChange={(e) => {
-          const val = e.target.value === "" ? "" : parseInt(e.target.value, 10);
-          if (val === "" || isNaN(val)) return;
-          onSelectWinner(
-            match.id,
-            val,
-            team2Goals === "" ? 0 : team2Goals,
-            match.team1,
-            match.team2,
-          );
-          setWinnerEditing(null);
-        }}
-        style={inputStyle(team1Win)}
-        className="ko-score-input"
-      />
-      <span className="ko-score-divider">–</span>
-      <input
-        type="number"
-        min="0"
-        max="99"
-        value={team2Goals}
-        placeholder="–"
-        onChange={(e) => {
-          const val = e.target.value === "" ? "" : parseInt(e.target.value, 10);
-          if (val === "" || isNaN(val)) return;
-          onSelectWinner(
-            match.id,
-            team1Goals === "" ? 0 : team1Goals,
-            val,
-            match.team1,
-            match.team2,
-          );
-          setWinnerEditing(null);
-        }}
-        style={inputStyle(team2Win)}
-        className="ko-score-input"
-      />
+    <div className="ko-score-stack">
+      <div className="ko-score-row" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="number"
+          min="0"
+          max="99"
+          value={team1Goals}
+          placeholder="–"
+          onChange={(e) => {
+            const val =
+              e.target.value === "" ? "" : parseInt(e.target.value, 10);
+            if (val === "" || isNaN(val)) return;
+            onSelectWinner(
+              match.id,
+              val,
+              team2Goals === "" ? 0 : team2Goals,
+              match.team1,
+              match.team2,
+            );
+            setWinnerEditing(null);
+          }}
+          style={inputStyle(team1Win)}
+          className="ko-score-input"
+        />
+        <span className="ko-score-divider">–</span>
+        <input
+          type="number"
+          min="0"
+          max="99"
+          value={team2Goals}
+          placeholder="–"
+          onChange={(e) => {
+            const val =
+              e.target.value === "" ? "" : parseInt(e.target.value, 10);
+            if (val === "" || isNaN(val)) return;
+            onSelectWinner(
+              match.id,
+              team1Goals === "" ? 0 : team1Goals,
+              val,
+              match.team1,
+              match.team2,
+            );
+            setWinnerEditing(null);
+          }}
+          style={inputStyle(team2Win)}
+          className="ko-score-input"
+        />
+      </div>
+
+      {isDraw && (
+        <PenaltyRow
+          match={match}
+          score={score}
+          onSelectPenalties={onSelectPenalties}
+        />
+      )}
     </div>
   );
 }
@@ -240,6 +333,7 @@ function MatchCard({
   match,
   onSelectWinner,
   onSelectScore,
+  onSelectPenalties,
   score,
   winnerEditing,
   setWinnerEditing,
@@ -286,6 +380,7 @@ function MatchCard({
               match={match}
               score={score}
               onSelectWinner={onSelectScore}
+              onSelectPenalties={onSelectPenalties}
               setWinnerEditing={setWinnerEditing}
             />
           </div>
@@ -345,6 +440,7 @@ function RoundColumn({
   gap,
   onSelectWinner,
   onSelectScore,
+  onSelectPenalties,
   knockoutScores,
   winnerEditing,
   setWinnerEditing,
@@ -369,6 +465,7 @@ function RoundColumn({
             match={match}
             onSelectWinner={onSelectWinner}
             onSelectScore={onSelectScore}
+            onSelectPenalties={onSelectPenalties}
             score={knockoutScores?.[match.id]}
             winnerEditing={winnerEditing}
             setWinnerEditing={setWinnerEditing}
@@ -388,6 +485,7 @@ function CenterRounds({
   bronzeMatch,
   onSelectWinner,
   onSelectScore,
+  onSelectPenalties,
   knockoutScores,
   winnerEditing,
   setWinnerEditing,
@@ -404,6 +502,7 @@ function CenterRounds({
           gap={16}
           onSelectWinner={onSelectWinner}
           onSelectScore={onSelectScore}
+          onSelectPenalties={onSelectPenalties}
           knockoutScores={knockoutScores}
           winnerEditing={winnerEditing}
           setWinnerEditing={setWinnerEditing}
@@ -422,6 +521,7 @@ function CenterRounds({
           gap={16}
           onSelectWinner={onSelectWinner}
           onSelectScore={onSelectScore}
+          onSelectPenalties={onSelectPenalties}
           knockoutScores={knockoutScores}
           winnerEditing={winnerEditing}
           setWinnerEditing={setWinnerEditing}
@@ -440,6 +540,7 @@ export default function Bracket({
   setKnockoutWinner,
   knockoutScores,
   setKnockoutScore,
+  setKnockoutPenalties,
   roundOf32Teams,
   setRoundOf32Matchup,
 }) {
@@ -495,6 +596,17 @@ export default function Bracket({
     setWinnerEditing(null);
   };
 
+  const handleSelectPenalties = (
+    matchId,
+    team1Penalties,
+    team2Penalties,
+    team1,
+    team2,
+  ) => {
+    setKnockoutPenalties(matchId, team1Penalties, team2Penalties, team1, team2);
+    setWinnerEditing(null);
+  };
+
   const handleToggleWinnerEditing = (value) => {
     setMatchupEditing(null);
     setWinnerEditing((current) => (current === value ? null : value));
@@ -538,6 +650,7 @@ export default function Bracket({
                 gap={gapMap[column.title] ?? 16}
                 onSelectWinner={handleSelectWinner}
                 onSelectScore={handleSelectScore}
+                onSelectPenalties={handleSelectPenalties}
                 knockoutScores={knockoutScores}
                 winnerEditing={winnerEditing}
                 setWinnerEditing={handleToggleWinnerEditing}
@@ -555,6 +668,7 @@ export default function Bracket({
           bronzeMatch={bronzeMatch}
           onSelectWinner={handleSelectWinner}
           onSelectScore={handleSelectScore}
+          onSelectPenalties={handleSelectPenalties}
           knockoutScores={knockoutScores}
           winnerEditing={winnerEditing}
           setWinnerEditing={handleToggleWinnerEditing}
@@ -572,6 +686,7 @@ export default function Bracket({
                 gap={gapMap[column.title] ?? 16}
                 onSelectWinner={handleSelectWinner}
                 onSelectScore={handleSelectScore}
+                onSelectPenalties={handleSelectPenalties}
                 knockoutScores={knockoutScores}
                 winnerEditing={winnerEditing}
                 setWinnerEditing={handleToggleWinnerEditing}

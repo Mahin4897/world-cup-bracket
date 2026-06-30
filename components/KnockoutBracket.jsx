@@ -36,6 +36,7 @@ export default function KnockoutBracket({ tournament }) {
     knockoutMatches,
     setKnockoutWinner,
     setKnockoutScore,
+    setKnockoutPenalties,
     setRoundOf32Matchup,
     roundOf32Teams,
     knockoutScores,
@@ -145,6 +146,7 @@ export default function KnockoutBracket({ tournament }) {
         knockoutMatches={knockoutMatches}
         setKnockoutWinner={setKnockoutWinner}
         setKnockoutScore={setKnockoutScore}
+        setKnockoutPenalties={setKnockoutPenalties}
         knockoutScores={knockoutScores}
         roundOf32Teams={roundOf32Teams}
         setRoundOf32Matchup={setRoundOf32Matchup}

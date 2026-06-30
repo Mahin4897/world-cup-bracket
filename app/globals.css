@@ -1504,6 +1504,54 @@ select {
     user-select: none;
 }
 
+.ko-score-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.ko-penalty-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    justify-content: center;
+}
+
+.ko-penalty-label {
+    font-size: 6.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-right: 1px;
+}
+
+.ko-penalty-input {
+    width: 18px;
+    height: 18px;
+    text-align: center;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 4px;
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
+}
+
+.ko-penalty-input::-webkit-inner-spin-button,
+.ko-penalty-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.ko-penalty-input:focus {
+    border-color: var(--border-gold) !important;
+    box-shadow: 0 0 0 2px rgba(200, 150, 12, 0.15);
+}
+
 .matchup-toggle-row,
 .advance-popover {
     position: relative;
